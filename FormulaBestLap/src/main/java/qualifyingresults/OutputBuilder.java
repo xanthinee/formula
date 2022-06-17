@@ -11,46 +11,27 @@ import java.util.function.Function;
 public class OutputBuilder {
 
 
-    private Pilot findLongest(Stream<PilotTime> stream, Function<Pilot, String> functionName) {
-
-            PilotTime pName = stream.max(Comparator.comparing(pilotTime -> functionName.apply(pilotTime.getPilot()).length()))
+    private int findLongest(Stream<PilotTime> stream, Function<Pilot, String> function) {
+            return stream.map(pilotTime -> function.apply(pilotTime.getPilot()).length()).
+                    max(Comparator.comparing(integer -> integer))
                     .orElseThrow(() -> new IllegalStateException("Can't get max length for empty stream"));
-            return pName.getPilot();
     }
 
-    private int findLength(Pilot pilot, Function<Pilot, String> function) {
-        return function.apply(pilot).length();
-    }
+    public String makeTable(Stream<PilotTime> stream) {
 
-    public String testMethod(Stream<PilotTime> stream) {
+        Function<Pilot, String> nameGetter = Pilot::getName;
+        Function<Pilot, String> teamGetter = Pilot::getTeam;
+        List<PilotTime> pilotsList = stream.toList();
+        int longestName = findLongest(pilotsList.stream(), nameGetter);
+        int longestTeam = findLongest(pilotsList.stream(), teamGetter);
+        int timeLength = pilotsList.get(0).getDuration().toString().length();
 
-        Function<Pilot, String> functionName = Pilot::getName;
-        Function<Pilot, String> functionTeam = Pilot::getTeam;
-        List<PilotTime> ptList = stream.toList();
-        int longestName = findLength(findLongest(ptList.stream(), functionName), functionName);
-        int longestTeam = findLength(findLongest(ptList.stream(), functionTeam), functionTeam);
-        int timeLength = ptList.get(0).getDuration().toString().length();
-
-        StringBuilder sb = new StringBuilder();
-        List<String> resultsList = ptList.stream().map(s -> stringFormat
-                (s,longestName,longestTeam,timeLength)).collect(Collectors.toList());
-
-        int position = 1;
-        int totalLength = longestName + longestTeam + timeLength;
-        for(String str : resultsList) {
-            if (position < 10) {
-                resultsList.set(resultsList.indexOf(str), position + ".  " + str );
-            } else {
-                resultsList.set(resultsList.indexOf(str), position + ". " + str );
-            }
-            position += 1;
-        }
-
-        resultsList.add(15, Utils.repeat('-', totalLength + 9));
-        for (String str : resultsList) {
-            sb.append(str).append(System.lineSeparator());
-        }
-       return sb.toString();
+        AtomicInteger index = new AtomicInteger(0);
+        List<String> formattedList = pilotsList.stream().map(s -> stringFormat
+                        (s, index.incrementAndGet(), longestName, longestTeam, timeLength)).collect(Collectors.toList());
+        int qualifiedToNextQ = 15;
+        formattedList.add(qualifiedToNextQ,Utils.repeat('-', formattedList.get(0).length()));
+        return formattedList.stream().collect(Collectors.joining(System.lineSeparator()));
     }
 
     private static String stringFormat(PilotTime pilotTime, int nameLength, int teamLength, int timeLength) {
